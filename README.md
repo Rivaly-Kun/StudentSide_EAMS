@@ -1,1 +1,1 @@
-#StudentSide React Web for AEMS group attendance system 
+#StudentSide React JS for AEMS group attendance system 
