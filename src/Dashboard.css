@@ -2,6 +2,27 @@
 :root {
     --transition-duration: 0.4s;
   }
+
+  #EventImage{
+    width: 200px;
+  height: 200px;
+  }
+  #EventImageCurrent{
+    width: 350px;
+  height: 350px;
+  }
+
+#CurEventBox{
+margin-bottom: 30px;
+  min-width: 200px;
+  border: 1px solid #ddd;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
 /* Modal Overlay */
 .qr-modal.modal-overlay {
   position: fixed;
@@ -359,6 +380,7 @@
   .main-content {
     flex: 1;
     padding: 20px;
+    overflow: auto;
     background-color: #f9f9f9;
     transition: margin-left var(--transition-duration) ease;
   }

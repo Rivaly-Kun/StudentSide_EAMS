@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [Id, setId] = useState("");
   const [pastEvents, setPastEvents] = useState([]);
   const [futureEvents, setFutureEvents] = useState([]);
-
+  const [imageUrls, setImageUrls] = useState([]); // Store image URLs
   const [nearestEvent, setNearestEvent] = useState(null); // State for the nearest event
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const navigate = useNavigate();
@@ -101,7 +101,16 @@ const Dashboard = () => {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+  const imageUrl = "http://localhost:8080/VAADIN/dynamic/resource/2/f5d6a388-c751-4995-b32f-0099007f7755/Screenshot%202024-11-09%20023959.png";
 
+  const ImageComponent = () => (
+      <img src={imageUrl} alt="Dynamic Resource" />
+  );
+  
+
+  
+  
+  
   const showSection = (section) => {
     setActiveSection(section);
   };
@@ -173,8 +182,8 @@ const Dashboard = () => {
           </ul>
         </nav>
       </aside>
-
-      {/* Main Content */}
+     {/*   <img src={imageUrl} alt="Dynamic Resource" />
+     Main Content */}
       <main className={`main-content ${isSidebarOpen ? "with-sidebar" : ""}`}>
         <button className="burger-icon" onClick={toggleSidebar} aria-label="Toggle Sidebar">
           {/* Burger icon */}
@@ -189,73 +198,107 @@ const Dashboard = () => {
         {activeSection === "Home" && (
   <section className="current-event">
     {nearestEvent ? (
-      <div>
+      <div Id="CurEventBox">
         <h3>Nearest Event: {nearestEvent.name}</h3>
         <p>{new Date(nearestEvent.time_starts).toLocaleDateString()}</p>
         <p>{nearestEvent.description}</p>
+
+        {/* Extract the full path from the event_image string */}
+        {nearestEvent.event_image && (() => {
+          const match = nearestEvent.event_image.match(
+            /fs:\/\/(\d+\/\d+\/\d+\/.+\.(jpg|png|webp))/
+          );
+
+          const relativePath = match ? match[1] : null;
+
+          // Construct the full image URL
+          const imageUrl = relativePath
+            ? `http://localhost:3001/images/${relativePath}`
+            : '';
+
+          return relativePath ? (
+            <img Id="EventImageCurrent" src={imageUrl} alt={nearestEvent.name} />
+          ) : (
+            <p>Image not available</p>
+          );
+        })()}
       </div>
     ) : (
       <p>No upcoming events</p>
     )}
 
-{isModalOpen && (
-  <div className="qr-modal modal-overlay" onClick={closeModal}>
-    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-      <button className="close-button" onClick={closeModal}>
-        &times;
-      </button>
-      <h3>Your QR Code</h3>
-      <QRCodeCanvas value={Id} />
-      <button onClick={downloadQRCode} className="download-button">
-        Download QR Code
-      </button>
-    </div>
-  </div>
+    {/* Future Events */}
+    <section className="future-events">
+      <h3>Future Events</h3>
+      <div className="future-events-row">
+        {futureEvents.length > 0 ? (
+          futureEvents.map((event) => {
+            const match = event.event_image.match(
+              /fs:\/\/(\d+\/\d+\/\d+\/.+\.(jpg|png|webp))/
+            );
+            const relativePath = match ? match[1] : null;
+            const imageUrl = relativePath
+              ? `http://localhost:3001/images/${relativePath}`
+              : '';
+
+            return (
+              <div key={event.id} className="future-event">
+                <h4>{event.name}</h4>
+                <p>{new Date(event.time_starts).toLocaleDateString()}</p>
+                <p>{event.description}</p>
+
+                {/* Render the image */}
+                {relativePath ? (
+                  <img Id="EventImage" src={imageUrl} alt={event.name} />
+                ) : (
+                  <p>Image not available</p>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <p>No future events</p>
+        )}
+      </div>
+    </section>
+
+    {/* Past Events */}
+    <section className="past-events">
+      <h3>Past Events</h3>
+      <div className="past-events-row">
+        {pastEvents.length > 0 ? (
+          pastEvents.map((event) => {
+            const match = event.event_image.match(
+              /fs:\/\/(\d+\/\d+\/\d+\/.+\.(jpg|png|webp))/
+            );
+            const relativePath = match ? match[1] : null;
+            const imageUrl = relativePath
+              ? `http://localhost:3001/images/${relativePath}`
+              : '';
+
+            return (
+              <div key={event.id} className="past-event">
+                <h4>{event.name}</h4>
+                <p>{new Date(event.time_starts).toLocaleDateString()}</p>
+                <p>{event.description}</p>
+
+                {/* Render the image */}
+                {relativePath ? (
+                  <img Id="EventImage" src={imageUrl} alt={event.name} />
+                ) : (
+                  <p>Image not available</p>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <p>No past events</p>
+        )}
+      </div>
+    </section>
+  </section>
 )}
 
-
-  {/* Future Events */}
-  <section className="future-events">
-    <h3>Future Events</h3>
-    <div className="future-events-row">
-      {futureEvents.length > 0 ? (
-        futureEvents.map((event) => (
-          <div key={event.id} className="future-event">
-            <h4>{event.name}</h4>
-            <p>{new Date(event.time_starts).toLocaleDateString()}</p>
-            <p>{event.description}</p>
-          </div>
-        ))
-      ) : (
-        <p>No future events</p>
-      )}
-    </div>
-  </section>
-
-
-{/* Fetch and display past events */}
-<section className="past-events">
-  <h3>Past Events</h3>
-  <div className="past-events-row">
-    {pastEvents.length > 0 ? (
-      pastEvents.map((event) => (
-        <div key={event.id} className="past-event">
-          <h4>{event.name}</h4>
-          <p>{new Date(event.time_starts).toLocaleDateString()}</p>
-          <p>{event.description}</p>
-        </div>
-      ))
-    ) : (
-      <p>No past events</p>
-    )}
-  </div>
-</section>
-
-
-
-
-  </section>
-)}
 
 
         {activeSection === "Events" && (
