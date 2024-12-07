@@ -5,6 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import Calendar from "../components/Calendar.js";
+import QRModal  from "../components/QrCode.js";
 import ReactDOM from 'react-dom';
 import {QRCodeSVG} from 'qrcode.react';
 import {QRCodeCanvas} from 'qrcode.react';
@@ -23,6 +24,63 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
   const navigate = useNavigate();
 
+  
+  const [userAttendance, setUserAttendance] = useState([]); // State to store attendance details
+  const [events, setEvents] = useState([]); // State to store all events
+  
+  useEffect(() => {
+    const fetchAttendanceAndEvents = async () => {
+      try {
+        const storedId = localStorage.getItem("id");
+  
+        if (!storedId) {
+          console.error("No stored ID found");
+          return;
+        }
+  
+        // Fetch all events
+        const { data: allEvents, error: eventsError } = await supabase
+          .from("events")
+          .select("id, name, time_starts, location, description, event_image");
+  
+        if (eventsError) throw eventsError;
+  
+        setEvents(allEvents || []);
+  
+        // Fetch attendance records for the current user
+        const { data: attendanceData, error: attendanceError } = await supabase
+          .from("attendance")
+          .select("status, scanned_at, event_id")
+          .eq("student_id", storedId);
+  
+        if (attendanceError) throw attendanceError;
+  
+        // Merge events with attendance data
+        const mergedData = allEvents.map((event) => {
+          const userAttendanceForEvent = attendanceData.find(
+            (attendance) => String(attendance.event_id) === String(event.id)
+          );
+  
+          return {
+            ...event,
+            attendanceStatus: userAttendanceForEvent
+              ? userAttendanceForEvent.status
+              : "Absent",
+            scannedAt: userAttendanceForEvent ? userAttendanceForEvent.scanned_at : null,
+          };
+        });
+  
+        setUserAttendance(mergedData);
+      } catch (error) {
+        console.error("Error fetching attendance and event data:", error.message);
+      }
+    };
+  
+    fetchAttendanceAndEvents();
+  }, []);
+  
+  
+   
   useEffect(() => {
     const fetchUserData = () => {
       const storedFirstName = localStorage.getItem("first_name");
@@ -262,6 +320,7 @@ const Dashboard = () => {
       </div>
     </section>
 
+
     {/* Past Events */}
     <section className="past-events">
       <h3>Past Events</h3>
@@ -299,18 +358,79 @@ const Dashboard = () => {
   </section>
 )}
 
+{activeSection === "Events" && (
+  <section className="upcoming-events">
+    <h3>Attendance Status</h3>
+    {userAttendance.length > 0 ? (
+      <table className="event-table">
+        <thead>
+          <tr>
+            <th>Event Name</th>
+            <th>Scanned At</th>
+            <th>Location</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Image</th>
+          </tr>
+        </thead>
+        <tbody>
+          {userAttendance.map((event, index) => {
+            const currentTime = new Date();
+            const eventStartTime = new Date(event.time_starts);
+
+            let eventStatus = event.attendanceStatus;
+
+            if (currentTime < eventStartTime) {
+              eventStatus = "Not Started";
+            }
+
+            const match = event.event_image?.match(
+              /fs:\/\/(\d+\/\d+\/\d+\/.+\.(jpg|png|webp))/
+            );
+            const relativePath = match ? match[1] : null;
+            const imageUrl = relativePath
+              ? `http://localhost:3001/images/${relativePath}`
+              : "";
+
+            return (
+              <tr key={index}>
+                <td>{event.name}</td>
+                <td>
+                  {event.scannedAt
+                    ? new Date(event.scannedAt).toLocaleString()
+                    : "Not scanned"}
+                </td>
+                <td>{event.location}</td>
+                <td>{event.description}</td>
+                <td>{eventStatus}</td>
+                <td>
+                  {relativePath ? (
+                    <img
+                      src={imageUrl}
+                      alt={event.name}
+                      className="event-image"
+                      style={{ maxWidth: "100px", height: "auto" }}
+                    />
+                  ) : (
+                    <p>Image not available</p>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    ) : (
+      <p>No events found.</p>
+    )}
+  </section>
+)}
 
 
-        {activeSection === "Events" && (
-          <section className="upcoming-events">
-            <h3>Upcoming Events</h3>
-            <div className="event-list">
-              <p>Foundation Day</p>
-              <p>Intramurals</p>
-              <p>Graduation Ceremony</p>
-            </div>
-          </section>
-        )}
+
+
+
+
       </main>
 
       {/* Right Sidebar */}
@@ -345,11 +465,18 @@ const Dashboard = () => {
           <Calendar />
         </div>
 
-        <div className="event-highlight">
-          <h4>Event</h4>
-          <p>Event Highlight: To be announced</p>
-        </div>
+   
       </aside>
+
+      <QRModal
+  isOpen={isModalOpen}
+  onClose={closeModal}
+  firstName={firstName}
+  lastName={last_name}
+  id={localStorage.getItem("id")}
+  onDownload={downloadQRCode}
+/>
+
     </div>
   );
 };
